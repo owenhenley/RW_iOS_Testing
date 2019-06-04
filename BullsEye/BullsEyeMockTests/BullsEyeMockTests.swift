@@ -27,53 +27,55 @@
 /// THE SOFTWARE.
 
 import XCTest
-
-// This gives the unit tests access to the internal types and functions in BullsEye.
 @testable import BullsEye
 
-class BullsEyeTests: XCTestCase {
-
-    var sut: BullsEyeGame! // sut = System Under Test
-
-    override func setUp() {
-        super.setUp()
-        // This creates a BullsEyeGame object at the class level, so all the tests in this test class can access the SUT object’s properties and methods.
-        sut = BullsEyeGame()
-        sut.startNewGame()
+class MockUserDefaults: UserDefaults {
+    var gameStyleChanged = 0
+    override func set(_ value: Int, forKey defaultName: String) {
+        if defaultName == "gameStyle" {
+            gameStyleChanged += 1
+        }
     }
+}
 
-    override func tearDown() {
-        // Release your SUT object
-        sut = nil
-        super.tearDown()
-    }
+class BullsEyeMockTests: XCTestCase {
+
+	var sut: ViewController!
+	var mockUserDefaults: MockUserDefaults!
+
+	override func setUp() {
+		super.setUp()
+
+		sut = UIStoryboard(name: "Main", bundle: nil)
+			.instantiateInitialViewController() as? ViewController
+		mockUserDefaults = MockUserDefaults(suiteName: "testing")
+		sut.defaults = mockUserDefaults
+	}
+
+	override func tearDown() {
+		sut = nil
+		mockUserDefaults = nil
+		super.tearDown()
+	}
 }
 
 // MARK: - Tests
 
-extension BullsEyeTests {
-    func testScoreIsComputed() {
-        // Given
-        // Set up any values needed
-        let guess = sut.targetValue + 5
+extension BullsEyeMockTests {
+	func testGameStyleCanBeChanged() {
+		// Given
+		let segmentedControl = UISegmentedControl()
 
-        // When
-        // Execute the code being tested
-        sut.check(guess: guess)
+		// When
+		XCTAssertEqual(mockUserDefaults.gameStyleChanged, 0, "gameStyleChanged should be 0 before sendActions")
+		segmentedControl.addTarget(sut,
+								   action: #selector(ViewController.chooseGameStyle(_:)), for: .valueChanged)
+		segmentedControl.sendActions(for: .valueChanged)
 
-        // Then
-        // Assert the result you expect with a message that prints if the test fails
-        XCTAssertEqual(sut.scoreRound, 95, "Score computed from guess is wrong")
-    }
-
-    func testScoreIsComputedWhaenGuessLTTarget() {
-        // Given
-        let guess = sut.targetValue - 5
-
-        // When
-        sut.check(guess: guess)
-
-        // Then
-        XCTAssertEqual(sut.scoreRound, 95, "Score computed from guess is wrong")
-    }
+		// Then
+		XCTAssertEqual(
+			mockUserDefaults.gameStyleChanged,
+			1,
+			"gameStyle user default wasn't changed")
+	}
 }
